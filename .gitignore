@@ -38,3 +38,6 @@ coverage/
 
 # TypeScript cache
 *.tsbuildinfo
+
+# Git worktrees
+.worktrees/
