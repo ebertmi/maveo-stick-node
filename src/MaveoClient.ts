@@ -147,18 +147,20 @@ export class MaveoClient extends EventEmitter {
 
     // Otherwise request and wait for status
     return new Promise((resolve, reject) => {
+      const resolver = (status: MaveoStatus) => {
+        clearTimeout(timeout);
+        resolve(status);
+      };
+
       const timeout = setTimeout(() => {
-        const index = this.statusPromiseResolvers.indexOf(resolve);
+        const index = this.statusPromiseResolvers.indexOf(resolver);
         if (index > -1) {
           this.statusPromiseResolvers.splice(index, 1);
         }
         reject(new Error('Status request timeout'));
       }, 10000);
 
-      this.statusPromiseResolvers.push((status: MaveoStatus) => {
-        clearTimeout(timeout);
-        resolve(status);
-      });
+      this.statusPromiseResolvers.push(resolver);
 
       this.requestStatus();
     });
