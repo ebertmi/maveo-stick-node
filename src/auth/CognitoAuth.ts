@@ -7,6 +7,7 @@ import {
   COGNITO_IDENTITY_ENDPOINT
 } from '../constants';
 import { AWSCredentials, AuthResult } from '../types';
+import { debug } from '../utils/logger';
 
 export class CognitoAuth {
   private username: string;
@@ -22,15 +23,15 @@ export class CognitoAuth {
   async authenticate(): Promise<AuthResult> {
     // Step 1: Get ID token from User Pool
     const idToken = await this.initiateAuth();
-    console.log('Step 1: Got ID token');
+    debug.auth('Got ID token');
 
     // Step 2: Get Identity ID from Identity Pool
     this.identityId = await this.getId(idToken);
-    console.log('Step 2: Got Identity ID:', this.identityId);
+    debug.auth('Got Identity ID: %s', this.identityId);
 
     // Step 3: Get AWS credentials
     this.credentials = await this.getCredentialsForIdentity(idToken, this.identityId);
-    console.log('Step 3: Got AWS credentials');
+    debug.auth('Got AWS credentials');
 
     return {
       credentials: this.credentials,
