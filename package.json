@@ -6,7 +6,9 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "example": "npx ts-node examples/basic.ts"
+    "example": "npx ts-node examples/basic.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "keywords": [
     "maveo",
