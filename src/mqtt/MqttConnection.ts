@@ -4,6 +4,7 @@ import mqtt, { MqttClient, IClientOptions } from 'mqtt';
 import { CognitoAuth } from '../auth/CognitoAuth';
 import { CommandMessage, StatusResponse, DoorCommand, LightCommand } from '../types';
 import { AWS_REGION, IOT_HOST } from '../constants';
+import { debug } from '../utils/logger';
 
 export interface MqttConnectionEvents {
   connected: () => void;
@@ -54,8 +55,7 @@ export class MqttConnection extends EventEmitter {
       // Generate auth headers (matching ha-maveo-cloud approach)
       const headers = this.generateAuthHeaders(credentials);
 
-      console.log('Connecting to MQTT with headers...');
-      console.log('Host:', IOT_HOST);
+      debug.mqtt('Connecting to MQTT, host: %s', IOT_HOST);
 
       // Use mqtt.js with WebSocket transport and custom headers
       const url = `wss://${IOT_HOST}:443/mqtt`;
@@ -139,7 +139,7 @@ export class MqttConnection extends EventEmitter {
     if (!this.client) return;
 
     this.client.on('connect', () => {
-      console.log('MQTT connected!');
+      debug.mqtt('Connected');
       this.isConnecting = false;
       this.reconnectAttempts = 0;
       this.subscribeToDevice();
@@ -148,7 +148,7 @@ export class MqttConnection extends EventEmitter {
 
     this.client.on('message', (topic: string, payload: Buffer) => {
       try {
-        console.log('Received message on', topic, ':', payload.toString());
+        debug.mqtt('Received message on %s: %s', topic, payload.toString());
         const message = JSON.parse(payload.toString()) as StatusResponse;
         this.emit('message', topic, message);
       } catch (error) {
@@ -157,12 +157,12 @@ export class MqttConnection extends EventEmitter {
     });
 
     this.client.on('error', (error: Error) => {
-      console.log('MQTT error:', error.message);
+      debug.mqtt('Error: %s', error.message);
       this.emit('error', error);
     });
 
     this.client.on('close', () => {
-      console.log('MQTT connection closed');
+      debug.mqtt('Connection closed');
       this.isConnecting = false;
       this.emit('disconnected');
 
@@ -172,7 +172,7 @@ export class MqttConnection extends EventEmitter {
     });
 
     this.client.on('offline', () => {
-      console.log('MQTT offline');
+      debug.mqtt('Offline');
       this.emit('disconnected');
     });
   }
@@ -204,13 +204,13 @@ export class MqttConnection extends EventEmitter {
     if (!this.client) return;
 
     const topic = `${this.deviceId}/rsp`;
-    console.log('Subscribing to:', topic);
+    debug.mqtt('Subscribing to: %s', topic);
 
     this.client.subscribe(topic, { qos: 1 }, (error) => {
       if (error) {
         this.emit('error', new Error(`Failed to subscribe to ${topic}: ${error.message}`));
       } else {
-        console.log('Subscribed to:', topic);
+        debug.mqtt('Subscribed to: %s', topic);
         // Request initial status
         this.requestStatus();
       }
@@ -225,14 +225,14 @@ export class MqttConnection extends EventEmitter {
 
     this.reconnectAttempts++;
     const delay = this.baseReconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
-    console.log(`Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts})...`);
+    debug.mqtt('Reconnecting in %dms (attempt %d)', delay, this.reconnectAttempts);
 
     await new Promise(resolve => setTimeout(resolve, delay));
 
     try {
       await this.connect();
     } catch (error) {
-      console.log('Reconnection failed:', error);
+      debug.mqtt('Reconnection failed: %O', error);
     }
   }
 
@@ -257,7 +257,7 @@ export class MqttConnection extends EventEmitter {
     const topic = `${this.deviceId}/cmd`;
     const payload = JSON.stringify(command);
 
-    console.log('Publishing to', topic, ':', payload);
+    debug.mqtt('Publishing to %s: %s', topic, payload);
     this.client.publish(topic, payload, { qos: 1 }, (error) => {
       if (error) {
         this.emit('error', new Error(`Failed to publish command: ${error.message}`));
