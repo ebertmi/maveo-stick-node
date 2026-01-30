@@ -19,6 +19,17 @@ export class MaveoClient extends EventEmitter {
 
   constructor(config: MaveoConfig) {
     super();
+
+    if (!config.username?.trim()) {
+      throw new Error('MaveoConfig: username is required');
+    }
+    if (!config.password?.trim()) {
+      throw new Error('MaveoConfig: password is required');
+    }
+    if (!config.deviceId?.trim()) {
+      throw new Error('MaveoConfig: deviceId is required');
+    }
+
     this.config = config;
     this.auth = new CognitoAuth(config.username, config.password);
   }
