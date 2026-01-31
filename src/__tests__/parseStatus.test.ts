@@ -77,4 +77,17 @@ describe('parseStatus', () => {
       rawValue: 4,
     });
   });
+
+  it('handles unknown state value by defaulting to STOPPED', () => {
+    const status = parseStatus(99);
+    expect(status).toMatchObject({
+      doorState: DoorState.STOPPED,
+      isStopped: true,
+      isOpening: false,
+      isClosing: false,
+      isOpen: false,
+      isClosed: false,
+      rawValue: 99,
+    });
+  });
 });
