@@ -116,40 +116,33 @@ export class MaveoClient extends (EventEmitter as new () => TypedEmitter<MaveoCl
 
   // Door control commands
   open(): void {
-    this.ensureConnected();
-    this.mqtt!.sendDoorCommand(DoorCommand.OPEN);
+    this.ensureConnected().sendDoorCommand(DoorCommand.OPEN);
   }
 
   close(): void {
-    this.ensureConnected();
-    this.mqtt!.sendDoorCommand(DoorCommand.CLOSE);
+    this.ensureConnected().sendDoorCommand(DoorCommand.CLOSE);
   }
 
   stop(): void {
-    this.ensureConnected();
-    this.mqtt!.sendDoorCommand(DoorCommand.STOP);
+    this.ensureConnected().sendDoorCommand(DoorCommand.STOP);
   }
 
   moveToIntermediate(): void {
-    this.ensureConnected();
-    this.mqtt!.sendDoorCommand(DoorCommand.INTERMEDIATE);
+    this.ensureConnected().sendDoorCommand(DoorCommand.INTERMEDIATE);
   }
 
   // Light control commands
   lightOn(): void {
-    this.ensureConnected();
-    this.mqtt!.sendLightCommand(LightCommand.ON);
+    this.ensureConnected().sendLightCommand(LightCommand.ON);
   }
 
   lightOff(): void {
-    this.ensureConnected();
-    this.mqtt!.sendLightCommand(LightCommand.OFF);
+    this.ensureConnected().sendLightCommand(LightCommand.OFF);
   }
 
   // Status methods
   requestStatus(): void {
-    this.ensureConnected();
-    this.mqtt!.requestStatus();
+    this.ensureConnected().requestStatus();
   }
 
   async getStatus(): Promise<MaveoStatus> {
@@ -213,10 +206,11 @@ export class MaveoClient extends (EventEmitter as new () => TypedEmitter<MaveoCl
     };
   }
 
-  private ensureConnected(): void {
+  private ensureConnected(): MqttConnection {
     if (!this.mqtt || !this.mqtt.isConnected()) {
       throw new Error('Not connected. Call connect() first.');
     }
+    return this.mqtt;
   }
 
   // Helper method to get door state as string
