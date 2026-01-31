@@ -193,7 +193,20 @@ export class MaveoClient extends (EventEmitter as new () => TypedEmitter<MaveoCl
   }
 
   private parseStatus(rawValue: number): MaveoStatus {
-    const doorState = rawValue as DoorState;
+    const validStates = [
+      DoorState.STOPPED,
+      DoorState.OPENING,
+      DoorState.CLOSING,
+      DoorState.OPEN,
+      DoorState.CLOSED,
+    ];
+
+    const isValidState = validStates.includes(rawValue);
+    const doorState = isValidState ? rawValue as DoorState : DoorState.STOPPED;
+
+    if (!isValidState) {
+      debug.client('Unknown door state value: %d, defaulting to STOPPED', rawValue);
+    }
 
     return {
       doorState,
