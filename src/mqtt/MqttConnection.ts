@@ -1,32 +1,57 @@
+import TypedEmitter from 'typed-emitter';
 import { EventEmitter } from 'events';
 import * as crypto from 'crypto';
 import mqtt, { MqttClient, IClientOptions } from 'mqtt';
 import { CognitoAuth } from '../auth/CognitoAuth';
 import { CommandMessage, StatusResponse, DoorCommand, LightCommand } from '../types';
-import { AWS_REGION, IOT_HOST } from '../constants';
+import {
+  AWS_REGION,
+  IOT_HOST,
+  DEFAULT_CONNECT_TIMEOUT,
+  DEFAULT_MAX_RECONNECT_ATTEMPTS,
+  DEFAULT_BASE_RECONNECT_DELAY,
+  DEFAULT_KEEPALIVE
+} from '../constants';
 import { debug } from '../utils/logger';
 
-export interface MqttConnectionEvents {
+export type MqttConnectionEvents = {
   connected: () => void;
   disconnected: () => void;
+  reconnecting: (attempt: number, maxAttempts: number, delayMs: number) => void;
   message: (topic: string, payload: StatusResponse) => void;
   error: (error: Error) => void;
 }
 
-export class MqttConnection extends EventEmitter {
+/**
+ * Options for MqttConnection.
+ */
+export interface MqttConnectionOptions {
+  connectTimeout?: number;
+  maxReconnectAttempts?: number;
+  baseReconnectDelay?: number;
+  keepalive?: number;
+}
+
+export class MqttConnection extends (EventEmitter as new () => TypedEmitter<MqttConnectionEvents>) {
   private auth: CognitoAuth;
   private deviceId: string;
   private client: MqttClient | null = null;
   private reconnectAttempts = 0;
-  private maxReconnectAttempts = 10;
-  private baseReconnectDelay = 1000;
+  private readonly maxReconnectAttempts: number;
+  private readonly baseReconnectDelay: number;
+  private readonly connectTimeout: number;
+  private readonly keepalive: number;
   private isConnecting = false;
   private shouldReconnect = true;
 
-  constructor(auth: CognitoAuth, deviceId: string) {
+  constructor(auth: CognitoAuth, deviceId: string, options: MqttConnectionOptions = {}) {
     super();
     this.auth = auth;
     this.deviceId = deviceId;
+    this.maxReconnectAttempts = options.maxReconnectAttempts ?? DEFAULT_MAX_RECONNECT_ATTEMPTS;
+    this.baseReconnectDelay = options.baseReconnectDelay ?? DEFAULT_BASE_RECONNECT_DELAY;
+    this.connectTimeout = options.connectTimeout ?? DEFAULT_CONNECT_TIMEOUT;
+    this.keepalive = options.keepalive ?? DEFAULT_KEEPALIVE;
   }
 
   async connect(): Promise<void> {
@@ -61,12 +86,12 @@ export class MqttConnection extends EventEmitter {
       const url = `wss://${IOT_HOST}:443/mqtt`;
 
       const options: IClientOptions = {
-        protocolVersion: 4, // MQTT 3.1.1
+        protocolVersion: 4,
         clientId: this.deviceId,
         clean: true,
-        reconnectPeriod: 0, // We handle reconnection manually
-        connectTimeout: 30000,
-        keepalive: 60,
+        reconnectPeriod: 0,
+        connectTimeout: this.connectTimeout,
+        keepalive: this.keepalive,
         wsOptions: {
           headers: headers
         }
@@ -186,7 +211,7 @@ export class MqttConnection extends EventEmitter {
 
       const timeout = setTimeout(() => {
         reject(new Error('Connection timeout'));
-      }, 30000);
+      }, this.connectTimeout);
 
       this.client.once('connect', () => {
         clearTimeout(timeout);
@@ -225,7 +250,9 @@ export class MqttConnection extends EventEmitter {
 
     this.reconnectAttempts++;
     const delay = this.baseReconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
-    debug.mqtt('Reconnecting in %dms (attempt %d)', delay, this.reconnectAttempts);
+
+    this.emit('reconnecting', this.reconnectAttempts, this.maxReconnectAttempts, delay);
+    debug.mqtt('Reconnecting in %dms (attempt %d/%d)', delay, this.reconnectAttempts, this.maxReconnectAttempts);
 
     await new Promise(resolve => setTimeout(resolve, delay));
 
