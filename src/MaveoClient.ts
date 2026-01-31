@@ -1,3 +1,4 @@
+import TypedEmitter from 'typed-emitter';
 import { EventEmitter } from 'events';
 import { CognitoAuth } from './auth/CognitoAuth';
 import { MqttConnection } from './mqtt/MqttConnection';
@@ -7,15 +8,19 @@ import {
   DoorState,
   DoorCommand,
   LightCommand,
-  StatusResponse
+  StatusResponse,
+  MaveoClientEvents
 } from './types';
+import { DEFAULT_STATUS_TIMEOUT } from './constants';
+import { debug } from './utils/logger';
 
-export class MaveoClient extends EventEmitter {
+export class MaveoClient extends (EventEmitter as new () => TypedEmitter<MaveoClientEvents>) {
   private config: MaveoConfig;
   private auth: CognitoAuth;
   private mqtt: MqttConnection | null = null;
   private currentStatus: MaveoStatus | null = null;
   private statusPromiseResolvers: Array<(status: MaveoStatus) => void> = [];
+  private readonly statusTimeout: number;
 
   constructor(config: MaveoConfig) {
     super();
@@ -31,6 +36,7 @@ export class MaveoClient extends EventEmitter {
     }
 
     this.config = config;
+    this.statusTimeout = config.statusTimeout ?? DEFAULT_STATUS_TIMEOUT;
     this.auth = new CognitoAuth(config.username, config.password);
   }
 
@@ -39,7 +45,12 @@ export class MaveoClient extends EventEmitter {
     await this.auth.authenticate();
 
     // Create MQTT connection
-    this.mqtt = new MqttConnection(this.auth, this.config.deviceId);
+    this.mqtt = new MqttConnection(this.auth, this.config.deviceId, {
+      connectTimeout: this.config.connectTimeout,
+      maxReconnectAttempts: this.config.maxReconnectAttempts,
+      baseReconnectDelay: this.config.baseReconnectDelay,
+      keepalive: this.config.keepalive,
+    });
 
     // Set up event handlers
     this.mqtt.on('connected', () => {
@@ -59,6 +70,10 @@ export class MaveoClient extends EventEmitter {
       this.handleStatusMessage(payload);
     });
 
+    this.mqtt.on('reconnecting', (attempt, max, delay) => {
+      this.emit('reconnecting', attempt, max, delay);
+    });
+
     // Connect to MQTT broker
     await this.mqtt.connect();
 
@@ -76,7 +91,7 @@ export class MaveoClient extends EventEmitter {
 
       const timeout = setTimeout(() => {
         reject(new Error('Timeout waiting for initial status. Maveo may have rate-limited your connection. Try again in 10 minutes.'));
-      }, 10000);
+      }, this.statusTimeout);
 
       const statusHandler = () => {
         clearTimeout(timeout);
@@ -158,7 +173,7 @@ export class MaveoClient extends EventEmitter {
           this.statusPromiseResolvers.splice(index, 1);
         }
         reject(new Error('Status request timeout'));
-      }, 10000);
+      }, this.statusTimeout);
 
       this.statusPromiseResolvers.push(resolver);
 

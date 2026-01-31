@@ -122,7 +122,7 @@ export interface CommandMessage {
 /**
  * Event types for MaveoClient.
  */
-export interface MaveoClientEvents {
+export type MaveoClientEvents = {
   /** Emitted when door status changes */
   status: (status: MaveoStatus) => void;
   /** Emitted when connected to Maveo Cloud */
