@@ -14,6 +14,24 @@ import {
 import { DEFAULT_STATUS_TIMEOUT } from './constants';
 import { debug } from './utils/logger';
 
+/**
+ * Client for controlling Maveo garage doors via Maveo Cloud.
+ *
+ * @example
+ * ```typescript
+ * const client = new MaveoClient({
+ *   username: 'user@example.com',
+ *   password: 'password',
+ *   deviceId: 'device-serial'
+ * });
+ *
+ * client.on('status', (status) => console.log(status));
+ * client.on('error', (error) => console.error(error));
+ *
+ * await client.connect();
+ * client.open();
+ * ```
+ */
 export class MaveoClient extends (EventEmitter as new () => TypedEmitter<MaveoClientEvents>) {
   private config: MaveoConfig;
   private auth: CognitoAuth;
@@ -22,6 +40,11 @@ export class MaveoClient extends (EventEmitter as new () => TypedEmitter<MaveoCl
   private statusPromiseResolvers: Array<(status: MaveoStatus) => void> = [];
   private readonly statusTimeout: number;
 
+  /**
+   * Creates a new MaveoClient instance.
+   * @param config - Configuration including credentials and device ID
+   * @throws {Error} If username, password, or deviceId is empty or whitespace
+   */
   constructor(config: MaveoConfig) {
     super();
 
@@ -40,6 +63,11 @@ export class MaveoClient extends (EventEmitter as new () => TypedEmitter<MaveoCl
     this.auth = new CognitoAuth(config.username, config.password);
   }
 
+  /**
+   * Connects to the Maveo Cloud service.
+   * Authenticates with AWS Cognito and establishes MQTT connection.
+   * @throws {Error} If authentication fails or connection times out
+   */
   async connect(): Promise<void> {
     // Authenticate with Cognito
     await this.auth.authenticate();
@@ -103,6 +131,9 @@ export class MaveoClient extends (EventEmitter as new () => TypedEmitter<MaveoCl
     });
   }
 
+  /**
+   * Disconnects from the Maveo Cloud service.
+   */
   async disconnect(): Promise<void> {
     if (this.mqtt) {
       await this.mqtt.disconnect();
@@ -110,41 +141,83 @@ export class MaveoClient extends (EventEmitter as new () => TypedEmitter<MaveoCl
     }
   }
 
+  /**
+   * Checks if currently connected to Maveo Cloud.
+   * @returns True if connected, false otherwise
+   */
   isConnected(): boolean {
     return this.mqtt?.isConnected() ?? false;
   }
 
-  // Door control commands
+  /**
+   * Opens the garage door.
+   * This is a fire-and-forget command. Errors are emitted via the 'error' event.
+   * @throws {Error} If not connected
+   */
   open(): void {
     this.ensureConnected().sendDoorCommand(DoorCommand.OPEN);
   }
 
+  /**
+   * Closes the garage door.
+   * This is a fire-and-forget command. Errors are emitted via the 'error' event.
+   * @throws {Error} If not connected
+   */
   close(): void {
     this.ensureConnected().sendDoorCommand(DoorCommand.CLOSE);
   }
 
+  /**
+   * Stops the garage door movement.
+   * This is a fire-and-forget command. Errors are emitted via the 'error' event.
+   * @throws {Error} If not connected
+   */
   stop(): void {
     this.ensureConnected().sendDoorCommand(DoorCommand.STOP);
   }
 
+  /**
+   * Moves the garage door to an intermediate position.
+   * This is a fire-and-forget command. Errors are emitted via the 'error' event.
+   * @throws {Error} If not connected
+   */
   moveToIntermediate(): void {
     this.ensureConnected().sendDoorCommand(DoorCommand.INTERMEDIATE);
   }
 
-  // Light control commands
+  /**
+   * Turns the garage light on.
+   * This is a fire-and-forget command. Errors are emitted via the 'error' event.
+   * @throws {Error} If not connected
+   */
   lightOn(): void {
     this.ensureConnected().sendLightCommand(LightCommand.ON);
   }
 
+  /**
+   * Turns the garage light off.
+   * This is a fire-and-forget command. Errors are emitted via the 'error' event.
+   * @throws {Error} If not connected
+   */
   lightOff(): void {
     this.ensureConnected().sendLightCommand(LightCommand.OFF);
   }
 
-  // Status methods
+  /**
+   * Requests a status update from the device.
+   * The status will be emitted via the 'status' event.
+   * @throws {Error} If not connected
+   */
   requestStatus(): void {
     this.ensureConnected().requestStatus();
   }
 
+  /**
+   * Gets the current door status.
+   * Returns cached status if available, otherwise requests fresh status from device.
+   * @returns The current door status
+   * @throws {Error} If not connected or request times out
+   */
   async getStatus(): Promise<MaveoStatus> {
     this.ensureConnected();
 
@@ -174,6 +247,10 @@ export class MaveoClient extends (EventEmitter as new () => TypedEmitter<MaveoCl
     });
   }
 
+  /**
+   * Gets the cached door status without requesting from device.
+   * @returns The cached status, or null if no status has been received
+   */
   getCurrentStatus(): MaveoStatus | null {
     return this.currentStatus;
   }
@@ -226,7 +303,11 @@ export class MaveoClient extends (EventEmitter as new () => TypedEmitter<MaveoCl
     return this.mqtt;
   }
 
-  // Helper method to get door state as string
+  /**
+   * Converts a DoorState enum value to a human-readable string.
+   * @param state - The door state to convert
+   * @returns Human-readable door state string
+   */
   static getDoorStateString(state: DoorState): string {
     switch (state) {
       case DoorState.OPENING:
