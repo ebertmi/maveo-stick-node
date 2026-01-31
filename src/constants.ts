@@ -17,3 +17,10 @@ export const IOT_PORT = 443;
 // Cognito endpoints
 export const COGNITO_IDP_ENDPOINT = `https://cognito-idp.${AWS_REGION}.amazonaws.com`;
 export const COGNITO_IDENTITY_ENDPOINT = `https://cognito-identity.${AWS_REGION}.amazonaws.com`;
+
+// Default timing and retry settings
+export const DEFAULT_CONNECT_TIMEOUT = 30000;
+export const DEFAULT_STATUS_TIMEOUT = 10000;
+export const DEFAULT_MAX_RECONNECT_ATTEMPTS = 10;
+export const DEFAULT_BASE_RECONNECT_DELAY = 1000;
+export const DEFAULT_KEEPALIVE = 60;
