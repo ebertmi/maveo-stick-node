@@ -7,6 +7,12 @@ export const AWS_REGION = 'eu-central-1';
 export const USER_POOL_ID = 'eu-central-1_ozbW8rTAj';
 export const CLIENT_ID = '34eruqhvvnniig5bccrre6s0ck';
 
+// potential UR blufi endpoints
+//export const AWS_REGION = 'us-west-2';
+//export const USER_POOL_ID = '"us-west-2_me1sJlGXO"';
+//export const IDENTITY_POOL_ID = 'us-west-2:91b51fae-6590-4452-9154-b5daf4ca745e;
+//export const IOT_HOST = 'us-west-2.iot.prod.marantec-cloud.de';
+
 // Cognito Identity Pool - for AWS credentials
 export const IDENTITY_POOL_ID = 'eu-central-1:b3ebe605-53c9-463e-8738-70ae01b042ee';
 
