@@ -13,6 +13,9 @@ archive/
 my-playground.ts
 CODE_REVIEW.md
 
+# Plans (internal)
+docs/plans/
+
 # OS files
 .DS_Store
 Thumbs.db

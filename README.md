@@ -59,9 +59,17 @@ await client.disconnect();
 new MaveoClient(config: MaveoConfig)
 ```
 
+**Required:**
 - `config.username` - Maveo account email
 - `config.password` - Maveo account password
 - `config.deviceId` - Device serial number from Maveo app
+
+**Optional:**
+- `config.connectTimeout` - Connection timeout in ms (default: 30000)
+- `config.statusTimeout` - Status request timeout in ms (default: 10000)
+- `config.maxReconnectAttempts` - Max reconnection attempts (default: 10)
+- `config.baseReconnectDelay` - Base delay between reconnects in ms (default: 1000)
+- `config.keepalive` - MQTT keepalive interval in seconds (default: 60)
 
 #### Methods
 
@@ -87,6 +95,7 @@ new MaveoClient(config: MaveoConfig)
 | `status` | Emitted when door status changes |
 | `connected` | Emitted when connected |
 | `disconnected` | Emitted when disconnected |
+| `reconnecting` | Emitted when attempting to reconnect (includes attempt number, max attempts, delay) |
 | `error` | Emitted on errors |
 
 ### `MaveoStatus`
