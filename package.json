@@ -21,14 +21,14 @@
   "license": "MIT",
   "dependencies": {
     "debug": "^4.4.3",
-    "mqtt": "^5.15.0",
+    "mqtt": "^5.15.1",
     "typed-emitter": "^2.1.0"
   },
   "devDependencies": {
-    "@types/debug": "^4.1.12",
-    "@types/node": "^25.3.0",
+    "@types/debug": "^4.1.13",
+    "@types/node": "^25.5.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.3",
-    "vitest": "^4.0.18"
+    "typescript": "^6.0.2",
+    "vitest": "^4.1.2"
   }
 }
